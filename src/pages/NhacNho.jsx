@@ -9,6 +9,9 @@ function NhacNho() {
     const [repeat, setRepeat] = useState('');
     const [editingId, setEditingId] = useState(null);
 
+    const username = localStorage.getItem("username");
+    const userId = localStorage.getItem("userId");
+
     // Load danh sách nhắc nhở khi load trang
     useEffect(() => {
         fetchReminders();
@@ -16,7 +19,7 @@ function NhacNho() {
 
     const fetchReminders = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/reminders');
+            const res = await axios.get(`http://localhost:5000/api/reminders?username=${username}`);
             setReminders(res.data);
         } catch (err) {
             console.error('Lỗi khi load nhắc nhở:', err);
@@ -25,10 +28,14 @@ function NhacNho() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         const reminder = {
             title,
             reminderDate: date,
             repeatType: repeat === 'monthly' ? 'MONTHLY' : 'ONCE',
+            user: {
+                id: Number(userId) // 👈 gửi đúng kiểu số để backend nhận được
+            }
         };
 
         try {
@@ -81,8 +88,14 @@ function NhacNho() {
 
                         <label>Chu kỳ</label>
                         <div className="reminder-radio">
-                            <label><input type="radio" name="repeat" value="monthly" checked={repeat === 'monthly'} onChange={() => setRepeat('monthly')} /> Lặp lại hàng tháng</label>
-                            <label><input type="radio" name="repeat" value="once" checked={repeat === 'once'} onChange={() => setRepeat('once')} /> Chỉ 1 lần</label>
+                            <label>
+                                <input type="radio" name="repeat" value="monthly" checked={repeat === 'monthly'} onChange={() => setRepeat('monthly')} />
+                                Lặp lại hàng tháng
+                            </label>
+                            <label>
+                                <input type="radio" name="repeat" value="once" checked={repeat === 'once'} onChange={() => setRepeat('once')} />
+                                Chỉ 1 lần
+                            </label>
                         </div>
 
                         <button type="submit">{editingId ? 'Lưu thay đổi' : 'Tạo nhắc nhở'}</button>

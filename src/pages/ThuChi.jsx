@@ -6,20 +6,24 @@ function ThuChi() {
     const [transactions, setTransactions] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
-
+    const [showModal, setShowModal] = useState(false);
+    const [modalTransaction, setModalTransaction] = useState(null);
 
     useEffect(() => {
-        axios.get('http://localhost:5000/api/transactions')
-            .then(response => setTransactions(response.data))
-            .catch(error => console.error('Lỗi khi lấy giao dịch:', error));
+        fetchTransactions();
     }, []);
+
+    const fetchTransactions = async () => {
+        const response = await axios.get('http://localhost:5000/api/transactions');
+        setTransactions(response.data);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const type = e.target.type.value;
         const category = e.target.category.value;
-        const amount = parseFloat(e.target.amount.value); // ép kiểu
-        const date = e.target.date.value; // giữ nguyên nếu backend accept dạng yyyy-MM-dd
+        const amount = parseFloat(e.target.amount.value);
+        const date = e.target.date.value;
         const note = e.target.note.value;
 
         try {
@@ -36,39 +40,16 @@ function ThuChi() {
                 });
                 alert('Lưu giao dịch thành công');
             }
-
-            const response = await axios.get('http://localhost:5000/api/transactions');
-            setTransactions(response.data);
+            fetchTransactions();
             e.target.reset();
         } catch (error) {
-            console.error(error); // để debug rõ
             alert('Lỗi khi lưu/cập nhật');
         }
     };
-    const [categories, setCategories] = useState([]);
 
-   useEffect(() => {
-     axios.get("http://localhost:5000/api/categories")
-       .then(res => setCategories(res.data))
-       .catch(err => console.error("Lỗi khi load categories", err));
-   }, []);
-
-
-
-
-    const handleDelete = async (id) => {
-        try {
-            await axios.delete(`http://localhost:5000/api/transactions/${id}`);
-            const response = await axios.get('http://localhost:5000/api/transactions');
-            setTransactions(response.data);
-        } catch (error) {
-            alert('Xóa giao dịch thất bại');
-        }
-    };
     const handleEdit = (tx) => {
         setIsEditing(true);
         setEditId(tx.id);
-        // Gán dữ liệu vào form
         document.querySelector('select[name="type"]').value = tx.type;
         document.querySelector('select[name="category"]').value = tx.category;
         document.querySelector('input[name="amount"]').value = tx.amount;
@@ -76,6 +57,31 @@ function ThuChi() {
         document.querySelector('input[name="note"]').value = tx.note;
     };
 
+    const handleDelete = async (id) => {
+        await axios.delete(`http://localhost:5000/api/transactions/${id}`);
+        fetchTransactions();
+    };
+
+    const handleAddNew = () => {
+        setIsEditing(false);
+        setEditId(null);
+        document.querySelector('form').reset();
+    };
+
+    const openModal = (tx) => {
+        setModalTransaction(tx);
+        setShowModal(true);
+    };
+
+    const confirmEdit = () => {
+        setShowModal(false);
+        handleEdit(modalTransaction);
+    };
+
+    const confirmDelete = () => {
+        setShowModal(false);
+        handleDelete(modalTransaction.id);
+    };
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -86,57 +92,78 @@ function ThuChi() {
                     <form onSubmit={handleSubmit}>
                         <div className="flex space-x-4 mb-4">
                             <select name="type" className="bg-blue-600 text-white px-4 py-2 rounded-md">
-                                <option value="Thu nhập">Thu nhập</option>
-                                <option value="Chi tiêu">Chi tiêu</option>
+                                <option value="income">Thu nhập</option>
+                                <option value="expense">Chi tiêu</option>
                             </select>
                         </div>
                         <div className="space-y-4">
                             <select name="category" className="block w-full p-2 border rounded-md">
-                                {categories.map(cat => (
-                                  <option key={cat.id} value={cat.name}>
-                                    {cat.name} ({cat.type})
-                                  </option>
-                                ))}
-
+                                <option>Ăn uống</option>
+                                <option>Đi lại</option>
+                                <option>Hóa đơn</option>
+                                <option>Học tập</option>
+                                <option>Khác</option>
                             </select>
                             <input type="text" name="amount" placeholder="Số tiền" className="block w-full p-2 border rounded-md" />
                             <input type="date" name="date" className="block w-full p-2 border rounded-md" />
                             <input type="text" name="note" placeholder="Ghi chú" className="block w-full p-2 border rounded-md" />
-                            <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">Lưu giao dịch</button>
+
+                            <div className="flex space-x-4">
+                                <button type="submit" className="flex-1 bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">
+                                    {isEditing ? 'Cập nhật' : 'Lưu giao dịch'}
+                                </button>
+                                <button type="button" onClick={handleAddNew} className="flex-1 bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600">
+                                    Thêm giao dịch
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
+
                 <div className="bg-white p-4 rounded-lg shadow-md">
                     <h2 className="text-lg font-semibold mb-4">Danh sách thu/chi gần đây</h2>
                     <table className="w-full">
                         <thead>
-                        <tr className="bg-gray-100">
-                            <th className="p-2 text-left">Loại</th>
-                            <th className="p-2 text-left">Danh mục</th>
-                            <th className="p-2 text-left">Số tiền</th>
-                            <th className="p-2 text-left">Ngày</th>
-                            <th className="p-2 text-left">Ghi chú</th>
-                            <th className="p-2 text-left">Hành động</th>
-                        </tr>
+                            <tr className="bg-gray-100">
+                                <th className="p-2 text-left">Loại</th>
+                                <th className="p-2 text-left">Danh mục</th>
+                                <th className="p-2 text-left">Số tiền</th>
+                                <th className="p-2 text-left">Ngày</th>
+                                <th className="p-2 text-left">Ghi chú</th>
+                                <th className="p-2 text-left">Hành động</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {transactions.map((tx, index) => (
-                            <tr key={index}>
-                                <td className="p-2">{tx.type}</td>
-                                <td className="p-2">{tx.category}</td>
-                                <td className="p-2">{tx.amount}</td>
-                                <td className="p-2">{tx.date}</td>
-                                <td className="p-2">{tx.note}</td>
-                                <td className="p-2">
-                                    <button onClick={() => handleEdit(tx)} className="text-blue-600 hover:underline">Sửa</button>
-                                    <button onClick={() => handleDelete(tx.id)} className="text-red-600 hover:underline ml-2">Xóa</button>
-
-                                </td>
-                            </tr>
-                        ))}
+                            {transactions.map((tx, index) => (
+                                <tr key={index}>
+                                    <td className="p-2">{tx.type === 'income' ? 'Thu nhập' : 'Chi tiêu'}</td>
+                                    <td className="p-2">{tx.category}</td>
+                                    <td className="p-2">{tx.amount}</td>
+                                    <td className="p-2">{tx.date}</td>
+                                    <td className="p-2">{tx.note}</td>
+                                    <td className="p-2">
+                                        <button onClick={() => openModal(tx)} className="text-blue-600 hover:underline">Sửa</button>
+                                        <button onClick={() => openModal(tx)} className="text-red-600 hover:underline ml-2">Xóa</button>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
+
+                {showModal && modalTransaction && (
+                    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                        <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+                            <h2 className="text-lg font-bold mb-4">Bạn muốn làm gì?</h2>
+                            <p className="mb-4">Giao dịch: {modalTransaction.note} ({modalTransaction.amount}đ)</p>
+                            <div className="flex justify-center space-x-4">
+                                <button onClick={confirmEdit} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Sửa</button>
+                                <button onClick={confirmDelete} className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">Xóa</button>
+                                <button onClick={() => setShowModal(false)} className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500">Huỷ</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

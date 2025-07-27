@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import dayjs from 'dayjs';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -20,11 +21,11 @@ function Dashboard() {
 
   const totalIncome = transactions
     .filter((t) => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const totalExpense = transactions
     .filter((t) => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const balance = totalIncome - totalExpense;
 
@@ -43,17 +44,42 @@ function Dashboard() {
     fetchData();
   }, []);
 
+  // ✅ Xử lý dữ liệu biểu đồ từ transactions
+  const currentMonth = dayjs();
+  const recentMonths = [
+    currentMonth.subtract(2, 'month'),
+    currentMonth.subtract(1, 'month'),
+    currentMonth,
+  ];
+
+  const monthlyData = recentMonths.map((month) => {
+    const monthKey = month.format('YYYY-MM');
+    const label = `Tháng ${month.month() + 1}`;
+    let income = 0;
+    let expense = 0;
+
+    transactions.forEach((t) => {
+      const txMonth = dayjs(t.date).format('YYYY-MM');
+      if (txMonth === monthKey) {
+        if (t.type === 'income') income += Number(t.amount);
+        if (t.type === 'expense') expense += Number(t.amount);
+      }
+    });
+
+    return { label, income, expense };
+  });
+
   const chartData = {
-    labels: ['Tháng 1', 'Tháng 2', 'Tháng 3'],
+    labels: monthlyData.map((d) => d.label),
     datasets: [
       {
         label: 'Thu nhập',
-        data: [15000000, 12000000, 18000000], // TODO: replace bằng data thực
+        data: monthlyData.map((d) => d.income),
         backgroundColor: '#16a34a',
       },
       {
         label: 'Chi tiêu',
-        data: [7500000, 8000000, 6000000], // TODO: replace bằng data thực
+        data: monthlyData.map((d) => d.expense),
         backgroundColor: '#dc2626',
       },
     ],
