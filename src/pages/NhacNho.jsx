@@ -1,6 +1,7 @@
 import Navbar from '../components/Navbar';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import dayjs from 'dayjs'; // Cài nếu chưa có: npm install dayjs
 
 function NhacNho() {
     const [reminders, setReminders] = useState([]);
@@ -12,7 +13,6 @@ function NhacNho() {
     const username = localStorage.getItem("username");
     const userId = localStorage.getItem("userId");
 
-    // Load danh sách nhắc nhở khi load trang
     useEffect(() => {
         fetchReminders();
     }, []);
@@ -31,10 +31,10 @@ function NhacNho() {
 
         const reminder = {
             title,
-            reminderDate: date,
+            remindDate: date, // 👈 dùng đúng tên biến backend
             repeatType: repeat === 'monthly' ? 'MONTHLY' : 'ONCE',
             user: {
-                id: Number(userId) // 👈 gửi đúng kiểu số để backend nhận được
+                id: Number(userId)
             }
         };
 
@@ -45,10 +45,7 @@ function NhacNho() {
                 await axios.post('http://localhost:5000/api/reminders', reminder);
             }
             fetchReminders();
-            setTitle('');
-            setDate('');
-            setRepeat('');
-            setEditingId(null);
+            resetForm();
         } catch (err) {
             console.error('Lỗi khi lưu nhắc nhở:', err);
         }
@@ -56,18 +53,26 @@ function NhacNho() {
 
     const handleEdit = (reminder) => {
         setTitle(reminder.title);
-        setDate(reminder.reminderDate);
+        setDate(reminder.remindDate); // 👈 dùng đúng biến
         setRepeat(reminder.repeatType === 'MONTHLY' ? 'monthly' : 'once');
         setEditingId(reminder.id);
     };
 
     const handleDelete = async (id) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa nhắc nhở này không?")) return;
         try {
             await axios.delete(`http://localhost:5000/api/reminders/${id}`);
             fetchReminders();
         } catch (err) {
             console.error('Lỗi khi xóa nhắc nhở:', err);
         }
+    };
+
+    const resetForm = () => {
+        setTitle('');
+        setDate('');
+        setRepeat('');
+        setEditingId(null);
     };
 
     return (
@@ -106,18 +111,24 @@ function NhacNho() {
                 <div className="card">
                     <h2>Danh sách nhắc nhở</h2>
                     <div className="reminder-list">
-                        {reminders.map((reminder) => (
-                            <div className="reminder-item" key={reminder.id}>
-                                <div>
-                                    <p className="reminder-title">{reminder.title}</p>
-                                    <p className="reminder-date">Hạn: {reminder.reminderDate}</p>
+                        {reminders.length === 0 ? (
+                            <p>Không có nhắc nhở nào.</p>
+                        ) : (
+                            reminders.map((reminder) => (
+                                <div className="reminder-item" key={reminder.id}>
+                                    <div>
+                                        <p className="reminder-title">{reminder.title}</p>
+                                        <p className="reminder-date">
+                                            Hạn: {dayjs(reminder.remindDate).format('DD/MM/YYYY')}
+                                        </p>
+                                    </div>
+                                    <div className="reminder-actions">
+                                        <button className="text-blue" onClick={() => handleEdit(reminder)}>Sửa</button>
+                                        <button className="text-red" onClick={() => handleDelete(reminder.id)}>Xóa</button>
+                                    </div>
                                 </div>
-                                <div className="reminder-actions">
-                                    <button className="text-blue" onClick={() => handleEdit(reminder)}>Sửa</button>
-                                    <button className="text-red" onClick={() => handleDelete(reminder.id)}>Xóa</button>
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
             </div>

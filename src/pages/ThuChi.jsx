@@ -100,11 +100,11 @@ function ThuChi() {
                         </div>
                         <div className="space-y-4">
                             <select name="category" className="block w-full p-2 border rounded-md">
-                                <option>Ăn uống</option>
-                                <option>Đi lại</option>
-                                <option>Hóa đơn</option>
-                                <option>Học tập</option>
-                                <option>Khác</option>
+                                <option>An uong</option>
+                                <option>Di lai</option>
+                                <option>Mua sam</option>
+                                <option>Hoc tap</option>
+                                <option>Khac</option>
                             </select>
                             <input type="text" name="amount" placeholder="Số tiền" className="block w-full p-2 border rounded-md" />
                             <input type="date" name="date" className="block w-full p-2 border rounded-md" />
