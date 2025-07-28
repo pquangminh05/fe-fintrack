@@ -29,20 +29,26 @@ function Dashboard() {
 
   const balance = totalIncome - totalExpense;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get('http://localhost:5000/api/transactions');
-        setTransactions(res.data);
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-      }
-    };
+const fetchData = async () => {
+  try {
+    const res = await axios.get('http://localhost:5000/api/transactions');
+    setTransactions(res.data);
+    setLoading(false);
+  } catch (err) {
+    console.error(err);
+    setLoading(false);
+  }
+};
 
+useEffect(() => {
+  fetchData();
+  const reload = localStorage.getItem('reloadDashboard');
+  if (reload === 'true') {
+    localStorage.removeItem('reloadDashboard');
     fetchData();
-  }, []);
+  }
+}, []);
+
 
   // ✅ Xử lý dữ liệu biểu đồ từ transactions
   const currentMonth = dayjs();

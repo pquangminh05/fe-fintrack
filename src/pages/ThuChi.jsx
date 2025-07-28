@@ -40,6 +40,8 @@ function ThuChi() {
                 });
                 alert('Lưu giao dịch thành công');
             }
+        localStorage.setItem('reloadDashboard', 'true');
+
             fetchTransactions();
             e.target.reset();
         } catch (error) {

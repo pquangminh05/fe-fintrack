@@ -10,17 +10,25 @@ function Login() {
         const password = e.target.password.value;
 
         try {
-            const response =  await axios.post("http://localhost:5000/api/auth/login", {
-                                     username: username,
-                                     password: password
-             });
-            localStorage.setItem("username", response.data.username);
+          const response = await axios.post("http://localhost:5000/api/auth/login", {
+            username: username,
+            password: password
+          });
 
-            alert(response.data);
-            navigate('/dashboard');
+          // Kiểm tra log
+          console.log("Đăng nhập thành công:", response.data);
+
+          // Lưu thông tin vào localStorage
+          localStorage.setItem("username", response.data.username);
+          localStorage.setItem("userId", response.data.userId);
+
+          alert("Đăng nhập thành công!");
+          navigate('/dashboard');
         } catch (error) {
-            alert('Đăng nhập thất bại');
+          console.error("Lỗi đăng nhập:", error.response?.data || error.message);
+          alert('Đăng nhập thất bại');
         }
+
     };
 
 

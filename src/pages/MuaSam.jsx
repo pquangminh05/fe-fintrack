@@ -1,38 +1,67 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
+import dayjs from 'dayjs';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 function MuaSam() {
     const [productName, setProductName] = useState('');
     const [price, setPrice] = useState('');
     const [store, setStore] = useState('');
-    const [purchaseDate, setPurchaseDate] = useState('');
-    const [receipt, setReceipt] = useState(null); // placeholder
+    const [purchaseDate, setPurchaseDate] = useState(null);
+    const [receipt, setReceipt] = useState(null);
     const [purchases, setPurchases] = useState([]);
     const [editId, setEditId] = useState(null);
+    const [note, setNote] = useState('');
+    const [productLink, setProductLink] = useState('');
 
-    const userId = localStorage.getItem('userId');
+    const userId = localStorage.getItem("userId");
+    console.log("userId:", userId);
 
     useEffect(() => {
         fetchPurchases();
     }, []);
 
     const fetchPurchases = async () => {
-        try {
-            const res = await axios.get(`http://localhost:5000/api/purchases?userId=${userId}`);
-            setPurchases(res.data);
-        } catch (err) {
-            console.error('Lỗi khi lấy danh sách mua sắm:', err);
-        }
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        console.warn("Không tìm thấy userId trong localStorage");
+        return;
+      }
+      try {
+        const res = await axios.get(`http://localhost:5000/api/purchases?userId=${userId}`);
+        setPurchases(res.data);
+      } catch (err) {
+        console.error("Lỗi khi lấy danh sách mua sắm:", err);
+      }
     };
 
+
     const handleSubmit = async () => {
+        const parsedPrice = Number(price);
+        const formattedDate = dayjs(purchaseDate).format('YYYY-MM-DD');
+        console.log({ productName, price, parsedPrice, store, purchaseDate, userId });
+        if (
+            !productName.trim() ||
+            isNaN(parsedPrice) || parsedPrice <= 0 ||
+            !store.trim() ||
+            !purchaseDate || isNaN(new Date(purchaseDate).getTime()) ||
+            !userId
+        ) {
+            alert('Vui lòng nhập đầy đủ và đúng định dạng.');
+            return;
+        }
+
+
         const data = {
             productName,
-            price: parseFloat(price),
+            price: parsedPrice,
             store,
-            purchaseDate,
-            user: { id: parseInt(userId) }
+            note,
+            productLink,
+            purchaseDate: formattedDate,
+            userId: parseInt(userId),
         };
 
         try {
@@ -41,27 +70,36 @@ function MuaSam() {
                 setEditId(null);
             } else {
                 await axios.post('http://localhost:5000/api/purchases', data);
+                alert('Lưu giao dịch thành công');
             }
+        localStorage.setItem('reloadDashboard', 'true');
+
             fetchPurchases();
             clearForm();
         } catch (err) {
-            console.error('Lỗi lưu mua sắm:', err);
+            console.error('Lỗi lưu mua sắm:', err.response?.data || err.message);
+            alert('Lỗi lưu mua sắm: ' + (err.response?.data?.message || 'Vui lòng kiểm tra lại'));
         }
     };
+
 
     const clearForm = () => {
         setProductName('');
         setPrice('');
         setStore('');
-        setPurchaseDate('');
+        setPurchaseDate(null);
         setReceipt(null);
+        setNote('');
+        setProductLink('');
     };
 
     const handleEdit = (item) => {
         setProductName(item.productName);
         setPrice(item.price);
         setStore(item.store);
-        setPurchaseDate(item.purchaseDate);
+        setPurchaseDate(new Date(item.purchaseDate));
+        setNote(item.note || '');
+        setProductLink(item.productLink || '');
         setEditId(item.id);
     };
 
@@ -102,18 +140,29 @@ function MuaSam() {
                             onChange={(e) => setStore(e.target.value)}
                             className="block w-full p-2 border rounded-md"
                         />
-                        <input
-                            type="date"
-                            value={purchaseDate}
-                            onChange={(e) => setPurchaseDate(e.target.value)}
+                        <DatePicker
+                            selected={purchaseDate}
+                            onChange={(date) => setPurchaseDate(date)}
+                            dateFormat="yyyy-MM-dd"
+                            placeholderText="Ngày mua (yyyy-MM-dd)"
                             className="block w-full p-2 border rounded-md"
                         />
                         <input
-                            type="file"
-                            disabled
+                            type="text"
+                            placeholder="Ghi chú"
+                            value={note}
+                            onChange={(e) => setNote(e.target.value)}
+                            className="block w-full p-2 border rounded-md"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Link sản phẩm"
+                            value={productLink}
+                            onChange={(e) => setProductLink(e.target.value)}
                             className="block w-full p-2 border rounded-md"
                         />
                         <button
+                            type="button"
                             onClick={handleSubmit}
                             className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700"
                         >
@@ -131,7 +180,6 @@ function MuaSam() {
                                 <th className="p-2 text-left">Giá</th>
                                 <th className="p-2 text-left">Nơi mua</th>
                                 <th className="p-2 text-left">Ngày</th>
-                                <th className="p-2 text-left">Hóa đơn</th>
                                 <th className="p-2 text-left">Hành động</th>
                             </tr>
                         </thead>
@@ -141,8 +189,7 @@ function MuaSam() {
                                     <td className="p-2">{item.productName}</td>
                                     <td className="p-2">{item.price.toLocaleString()}₫</td>
                                     <td className="p-2">{item.store}</td>
-                                    <td className="p-2">{item.purchaseDate}</td>
-                                    <td className="p-2 text-blue-600">Chưa có</td>
+                                    <td className="p-2">{dayjs(item.purchaseDate).format('YYYY-MM-DD')}</td>
                                     <td className="p-2">
                                         <button
                                             onClick={() => handleEdit(item)}
