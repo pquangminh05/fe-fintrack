@@ -161,35 +161,37 @@ function Dashboard() {
             </div>
 
             {/* ✅ Giao dịch gần đây của user */}
-            {transactions.length > 0 && (
-              <div className="card">
-                <h2>Giao dịch gần đây</h2>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Loại</th>
-                      <th>Danh mục</th>
-                      <th>Số tiền</th>
-                      <th>Ngày</th>
-                      <th>Ghi chú</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactions.slice(0, 5).map((tx) => (
-                      <tr key={tx.id}>
-                        <td>{tx.type === 'income' ? 'Thu nhập' : 'Chi tiêu'}</td>
-                        <td>{tx.category}</td>
-                        <td className={tx.type === 'income' ? 'text-green' : 'text-red'}>
-                          {Number(tx.amount).toLocaleString()}₫
-                        </td>
-                        <td>{dayjs(tx.date).format('DD/MM/YYYY')}</td>
-                        <td>{tx.description}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                        {transactions.length > 0 && (
+                          <div className="card">
+                            <h2>Giao dịch gần đây</h2>
+                            <div className="table-container">
+                              <table className="table">
+                                <thead>
+                                  <tr>
+                                    <th>Loại</th>
+                                    <th>Danh mục</th>
+                                    <th>Số tiền</th>
+                                    <th>Ngày</th>
+                                    <th>Ghi chú</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {transactions.slice(0, 10).map((tx) => (
+                                    <tr key={tx.id}>
+                                      <td>{tx.type === 'income' ? 'Thu nhập' : 'Chi tiêu'}</td>
+                                      <td>{tx.category}</td>
+                                      <td className={tx.type === 'income' ? 'text-green' : 'text-red'}>
+                                        {Number(tx.amount).toLocaleString()}₫
+                                      </td>
+                                      <td>{dayjs(tx.date).format('DD/MM/YYYY')}</td>
+                                      <td>{tx.description}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
           </>
         )}
       </div>
