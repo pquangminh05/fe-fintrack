@@ -22,8 +22,14 @@ function Register() {
                 password: password
             });
 
-            alert(response.data);
-            navigate('/login');
+            console.log("Đăng ký thành công:", response.data);
+
+                      // Lưu thông tin vào localStorage
+                      localStorage.setItem("username", response.data.username);
+                      localStorage.setItem("userId", response.data.userId);
+
+                      alert("Đăng ký thành công!");
+                      navigate('/login');
         } catch (error) {
             alert('Đăng ký thất bại');
         }
