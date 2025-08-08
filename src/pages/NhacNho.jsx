@@ -1,7 +1,7 @@
 import Navbar from '../components/Navbar';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import dayjs from 'dayjs'; // Cài nếu chưa có: npm install dayjs
+import dayjs from 'dayjs';
 
 function NhacNho() {
     const [reminders, setReminders] = useState([]);
