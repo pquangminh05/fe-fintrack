@@ -19,6 +19,9 @@ function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ✅ Lấy userId từ localStorage
+  const userId = localStorage.getItem('userId');
+
   const totalIncome = transactions
     .filter((t) => t.type === 'income')
     .reduce((sum, t) => sum + Number(t.amount), 0);
@@ -29,28 +32,34 @@ function Dashboard() {
 
   const balance = totalIncome - totalExpense;
 
-const fetchData = async () => {
-  try {
-    const res = await axios.get('http://localhost:5000/api/transactions');
-    setTransactions(res.data);
-    setLoading(false);
-  } catch (err) {
-    console.error(err);
-    setLoading(false);
-  }
-};
+  // ✅ Cập nhật fetchData để lấy theo userId
+  const fetchData = async () => {
+    try {
+      if (!userId) {
+        console.warn("Không tìm thấy userId, chuyển hướng về login");
+        window.location.href = '/login';
+        return;
+      }
 
-useEffect(() => {
-  fetchData();
-  const reload = localStorage.getItem('reloadDashboard');
-  if (reload === 'true') {
-    localStorage.removeItem('reloadDashboard');
+      const res = await axios.get(`http://localhost:5000/api/transactions?userId=${userId}`);
+      setTransactions(res.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Lỗi khi tải dữ liệu dashboard:', err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
-  }
-}, []);
+    const reload = localStorage.getItem('reloadDashboard');
+    if (reload === 'true') {
+      localStorage.removeItem('reloadDashboard');
+      fetchData();
+    }
+  }, [userId]);
 
-
-  // ✅ Xử lý dữ liệu biểu đồ từ transactions
+  // ✅ Xử lý dữ liệu biểu đồ từ transactions của user
   const currentMonth = dayjs();
   const recentMonths = [
     currentMonth.subtract(2, 'month'),
@@ -99,11 +108,29 @@ useEffect(() => {
     },
   };
 
+  // ✅ Kiểm tra đăng nhập
+  if (!userId) {
+    return (
+      <>
+        <Navbar />
+        <div className="container">
+          <p>Vui lòng đăng nhập để xem dashboard</p>
+          <a href="/login" className="btn btn-primary">Đăng nhập</a>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
       <div className="container dashboard-page">
         <h1>Trang tổng quan tài chính</h1>
+
+        {/* ✅ Hiển thị thông tin user */}
+        <div className="user-info mb-4">
+          <p><strong>Chào mừng:</strong> {localStorage.getItem('username')}</p>
+        </div>
 
         {loading ? (
           <p>Đang tải dữ liệu...</p>
@@ -132,6 +159,37 @@ useEffect(() => {
                 <Bar data={chartData} options={chartOptions} />
               </div>
             </div>
+
+            {/* ✅ Giao dịch gần đây của user */}
+            {transactions.length > 0 && (
+              <div className="card">
+                <h2>Giao dịch gần đây</h2>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Loại</th>
+                      <th>Danh mục</th>
+                      <th>Số tiền</th>
+                      <th>Ngày</th>
+                      <th>Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.slice(0, 5).map((tx) => (
+                      <tr key={tx.id}>
+                        <td>{tx.type === 'income' ? 'Thu nhập' : 'Chi tiêu'}</td>
+                        <td>{tx.category}</td>
+                        <td className={tx.type === 'income' ? 'text-green' : 'text-red'}>
+                          {Number(tx.amount).toLocaleString()}₫
+                        </td>
+                        <td>{dayjs(tx.date).format('DD/MM/YYYY')}</td>
+                        <td>{tx.description}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
       </div>
