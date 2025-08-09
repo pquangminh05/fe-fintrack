@@ -10,6 +10,9 @@ function NhacNho() {
     const [content, setContent] = useState('');
     const [editingId, setEditingId] = useState(null);
 
+    // ✅ Thêm state cho trạng thái hoàn thành
+    const [done, setDone] = useState(false);
+
     // ✅ Lấy userId và username từ localStorage
     const username = localStorage.getItem("username");
     const userId = localStorage.getItem("userId");
@@ -20,7 +23,6 @@ function NhacNho() {
         }
     }, [username, userId]);
 
-    // ✅ Giữ nguyên fetchReminders vì đã đúng
     const fetchReminders = async () => {
         try {
             const res = await axios.get(`http://localhost:5000/api/reminders?username=${username}`);
@@ -30,7 +32,7 @@ function NhacNho() {
         }
     };
 
-    // ✅ Cập nhật handleSubmit để đảm bảo có đủ thông tin user
+    // ✅ Cập nhật handleSubmit để bao gồm trạng thái done
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -43,7 +45,7 @@ function NhacNho() {
             title,
             content,
             remindDate: date,
-            done: false,
+            done: done, // ✅ Thêm trạng thái done
             user: {
                 id: Number(userId)
             }
@@ -65,11 +67,37 @@ function NhacNho() {
         }
     };
 
+    // ✅ Cập nhật handleEdit để bao gồm trạng thái done
     const handleEdit = (reminder) => {
         setTitle(reminder.title);
         setContent(reminder.content || '');
         setDate(reminder.remindDate);
+        setDone(reminder.done); // ✅ Set trạng thái done
         setEditingId(reminder.id);
+    };
+
+    // ✅ Thêm hàm toggle trạng thái hoàn thành nhanh
+    const toggleDone = async (reminderId, currentDone) => {
+        try {
+            // Lấy thông tin reminder hiện tại
+            const reminder = reminders.find(r => r.id === reminderId);
+            if (!reminder) return;
+
+            // Cập nhật trạng thái done
+            const updatedReminder = {
+                ...reminder,
+                done: !currentDone,
+                user: {
+                    id: Number(userId)
+                }
+            };
+
+            await axios.put(`http://localhost:5000/api/reminders/${reminderId}`, updatedReminder);
+            fetchReminders(); // Tải lại danh sách
+        } catch (err) {
+            console.error('Lỗi khi cập nhật trạng thái:', err);
+            alert('Lỗi khi cập nhật trạng thái');
+        }
     };
 
     const handleDelete = async (id) => {
@@ -84,10 +112,12 @@ function NhacNho() {
         }
     };
 
+    // ✅ Cập nhật resetForm để bao gồm done
     const resetForm = () => {
         setTitle('');
         setContent('');
         setDate('');
+        setDone(false); // ✅ Reset trạng thái done
         setEditingId(null);
     };
 
@@ -115,7 +145,7 @@ function NhacNho() {
                     <p><strong>Nhắc nhở của:</strong> {username}</p>
                 </div>
 
-                {/* Form tạo nhắc nhở */}
+                {/* ✅ Cập nhật Form tạo nhắc nhở với checkbox trạng thái */}
                 <div className="card">
                     <h2>{editingId ? 'Chỉnh sửa nhắc nhở' : 'Tạo nhắc nhở mới'}</h2>
                     <form className="reminder-form" onSubmit={handleSubmit}>
@@ -144,6 +174,21 @@ function NhacNho() {
                             onChange={(e) => setDate(e.target.value)}
                         />
 
+                        {/* ✅ Thêm checkbox trạng thái hoàn thành */}
+                        <div className="checkbox-wrapper" style={{marginTop: '15px', marginBottom: '15px'}}>
+                            <label style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                                <input
+                                    type="checkbox"
+                                    checked={done}
+                                    onChange={(e) => setDone(e.target.checked)}
+                                    style={{width: '20px', height: '20px'}}
+                                />
+                                <span style={{fontWeight: 'bold', color: done ? '#16a34a' : '#6b7280'}}>
+                                    {done ? '✅ Đã hoàn thành' : '⏳ Chưa hoàn thành'}
+                                </span>
+                            </label>
+                        </div>
+
                         <div className="form-actions">
                             <button type="submit" className="btn btn-primary">
                                 {editingId ? 'Lưu thay đổi' : 'Tạo nhắc nhở'}
@@ -157,7 +202,7 @@ function NhacNho() {
                     </form>
                 </div>
 
-                {/* Danh sách nhắc nhở */}
+                {/* ✅ Cập nhật Danh sách nhắc nhở với nút toggle trạng thái */}
                 <div className="card">
                     <h2>Danh sách nhắc nhở</h2>
                     <div className="reminder-list">
@@ -171,10 +216,15 @@ function NhacNho() {
                                 return (
                                     <div
                                         className={`reminder-item ${
+                                            reminder.done ? 'reminder-completed' :
                                             isOverdue ? 'reminder-overdue' :
                                             isToday ? 'reminder-today' : 'reminder-upcoming'
                                         }`}
                                         key={reminder.id}
+                                        style={{
+                                            opacity: reminder.done ? 0.7 : 1,
+                                            textDecoration: reminder.done ? 'line-through' : 'none'
+                                        }}
                                     >
                                         <div className="reminder-content">
                                             <h3 className="reminder-title">
@@ -185,28 +235,37 @@ function NhacNho() {
                                             )}
                                             <p className="reminder-date">
                                                 📅 Hạn: {dayjs(reminder.remindDate).format('DD/MM/YYYY')}
-                                                {isOverdue && <span className="text-red"> (Đã quá hạn)</span>}
-                                                {isToday && <span className="text-orange"> (Hôm nay)</span>}
+                                                {!reminder.done && isOverdue && <span className="text-red"> (Đã quá hạn)</span>}
+                                                {!reminder.done && isToday && <span className="text-orange"> (Hôm nay)</span>}
                                             </p>
                                             <p className="reminder-status">
                                                 Trạng thái: {reminder.done ?
-                                                    <span className="text-green">Đã hoàn thành</span> :
-                                                    <span className="text-blue">Chưa hoàn thành</span>
+                                                    <span className="text-green">✅ Đã hoàn thành</span> :
+                                                    <span className="text-blue">⏳ Chưa hoàn thành</span>
                                                 }
                                             </p>
                                         </div>
                                         <div className="reminder-actions">
+                                            {/* ✅ Thêm nút toggle trạng thái */}
+                                            <button
+                                                className={`btn btn-sm ${reminder.done ? 'btn-warning' : 'btn-success'}`}
+                                                onClick={() => toggleDone(reminder.id, reminder.done)}
+                                                style={{marginRight: '5px'}}
+                                            >
+                                                {reminder.done ? '↩️ Chưa xong' : '✅ Xong'}
+                                            </button>
                                             <button
                                                 className="btn btn-sm btn-primary"
                                                 onClick={() => handleEdit(reminder)}
+                                                style={{marginRight: '5px'}}
                                             >
-                                                Sửa
+                                                ✏️ Sửa
                                             </button>
                                             <button
                                                 className="btn btn-sm btn-danger"
                                                 onClick={() => handleDelete(reminder.id)}
                                             >
-                                                Xóa
+                                                🗑️ Xóa
                                             </button>
                                         </div>
                                     </div>
@@ -216,6 +275,37 @@ function NhacNho() {
                     </div>
                 </div>
             </div>
+
+            {/* ✅ Thêm CSS tùy chỉnh */}
+            <style jsx>{`
+                .reminder-completed {
+                    background-color: #f0f9f0 !important;
+                    border-left: 4px solid #16a34a !important;
+                }
+
+                .checkbox-wrapper {
+                    padding: 10px;
+                    background-color: #f8f9fa;
+                    border-radius: 5px;
+                    border: 1px solid #dee2e6;
+                }
+
+                .reminder-actions {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 5px;
+                }
+
+                @media (max-width: 576px) {
+                    .reminder-actions {
+                        flex-direction: column;
+                    }
+
+                    .reminder-actions button {
+                        width: 100%;
+                    }
+                }
+            `}</style>
         </>
     );
 }
