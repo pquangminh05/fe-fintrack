@@ -42,6 +42,7 @@ function MuaSam() {
         const parsedPrice = Number(price);
         const formattedDate = dayjs(purchaseDate).format('YYYY-MM-DD');
         console.log({ productName, price, parsedPrice, store, purchaseDate, userId });
+
         if (
             !productName.trim() ||
             isNaN(parsedPrice) || parsedPrice <= 0 ||
@@ -52,7 +53,6 @@ function MuaSam() {
             alert('Vui lòng nhập đầy đủ và đúng định dạng.');
             return;
         }
-
 
         const data = {
             productName,
@@ -67,13 +67,14 @@ function MuaSam() {
         try {
             if (editId) {
                 await axios.put(`http://localhost:5000/api/purchases/${editId}`, data);
+                alert('Cập nhật mua sắm thành công!');
                 setEditId(null);
             } else {
                 await axios.post('http://localhost:5000/api/purchases', data);
                 alert('Lưu giao dịch thành công');
             }
-        localStorage.setItem('reloadDashboard', 'true');
 
+            localStorage.setItem('reloadDashboard', 'true');
             fetchPurchases();
             clearForm();
         } catch (err) {
