@@ -22,6 +22,9 @@ function Dashboard() {
   // ✅ Thêm state cho việc chọn khoảng thời gian
   const [timeRange, setTimeRange] = useState('3months'); // Mặc định 3 tháng
 
+  // ✅ Thêm state để quản lý số lượng giao dịch hiển thị
+  const [displayCount, setDisplayCount] = useState(20); // Mặc định hiển thị 20 giao dịch
+
   // ✅ Lấy userId từ localStorage
   const userId = localStorage.getItem('userId');
 
@@ -184,6 +187,17 @@ function Dashboard() {
     }
   };
 
+  // ✅ Hàm xử lý khi thay đổi số lượng hiển thị
+  const handleDisplayCountChange = (e) => {
+    const value = e.target.value;
+    setDisplayCount(value === 'all' ? transactions.length : parseInt(value));
+  };
+
+  // ✅ Hàm hiển thị tất cả giao dịch
+  const showAllTransactions = () => {
+    setDisplayCount(transactions.length);
+  };
+
   // ✅ Kiểm tra đăng nhập
   if (!userId) {
     return (
@@ -296,14 +310,61 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* ✅ Giao dịch gần đây của user */}
+            {/* ✅ Cập nhật phần Giao dịch gần đây với bộ lọc số lượng hiển thị */}
             {transactions.length > 0 && (
               <div className="card">
-                <h2>Giao dịch gần đây</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h2>Giao dịch gần đây</h2>
+
+                  {/* ✅ Bộ điều khiển số lượng hiển thị */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                      📋 Hiển thị:
+                    </span>
+                    <select
+                      value={displayCount === transactions.length ? 'all' : displayCount}
+                      onChange={handleDisplayCountChange}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        backgroundColor: '#f8f9fa',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <option value="10">📄 10 giao dịch</option>
+                      <option value="20">📄 20 giao dịch</option>
+                      <option value="50">📄 50 giao dịch</option>
+                      <option value="100">📄 100 giao dịch</option>
+                      <option value="all">📄 Tất cả ({transactions.length})</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* ✅ Hiển thị thông tin tổng quan */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '15px',
+                  padding: '10px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}>
+                  <span>
+                    <strong>Tổng số giao dịch:</strong> {transactions.length}
+                  </span>
+                  <span>
+                    <strong>Đang hiển thị:</strong> {Math.min(displayCount, transactions.length)} giao dịch
+                  </span>
+                </div>
+
                 <div className="table-container">
                   <table className="table">
                     <thead>
                       <tr>
+                        <th>STT</th>
                         <th>Loại</th>
                         <th>Danh mục</th>
                         <th>Số tiền</th>
@@ -314,9 +375,14 @@ function Dashboard() {
                     <tbody>
                       {transactions
                         .sort((a, b) => new Date(b.date) - new Date(a.date)) // ✅ Sắp xếp theo ngày mới nhất
-                        .slice(0, 10)
-                        .map((tx) => (
+                        .slice(0, displayCount) // ✅ Hiển thị theo số lượng được chọn
+                        .map((tx, index) => (
                         <tr key={tx.id}>
+                          <td className="text-center">
+                            <small style={{ color: '#6b7280', fontWeight: 'bold' }}>
+                              #{index + 1}
+                            </small>
+                          </td>
                           <td>
                             <span className={`badge ${tx.type === 'income' ? 'bg-success' : 'bg-danger'}`}>
                               {tx.type === 'income' ? '💰 Thu nhập' : '💸 Chi tiêu'}
@@ -333,6 +399,26 @@ function Dashboard() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* ✅ Thêm nút nhanh để hiển thị tất cả */}
+                {displayCount < transactions.length && (
+                  <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                    <button
+                      onClick={showAllTransactions}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      📋 Hiển thị tất cả {transactions.length} giao dịch
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -384,18 +470,6 @@ function Dashboard() {
           color: white !important;
         }
 
-        .stat-card h3 {
-          margin: 0 0 10px 0;
-          font-size: 1.1rem;
-          opacity: 0.9;
-        }
-
-        .stat-card p {
-          margin: 0;
-          font-size: 1.5rem;
-          font-weight: bold;
-        }
-
         .card {
           background: white;
           padding: 25px;
@@ -410,7 +484,7 @@ function Dashboard() {
         }
 
         .table-container {
-          max-height: 400px;
+          max-height: 600px; /* ✅ Tăng chiều cao để hiển thị nhiều hơn */
           overflow-y: auto;
         }
 
@@ -462,6 +536,7 @@ function Dashboard() {
           background-color: #dc2626 !important;
         }
 
+        /* ✅ Thêm CSS cho phần hiển thị STT và tối ưu responsive */
         @media (max-width: 768px) {
           .stat-grid {
             grid-template-columns: 1fr;
@@ -474,6 +549,18 @@ function Dashboard() {
           .table-container {
             font-size: 0.9rem;
           }
+
+          .table th:nth-child(1),
+          .table td:nth-child(1) {
+            min-width: 50px;
+          }
+        }
+
+        /* ✅ CSS cho STT */
+        .table th:nth-child(1),
+        .table td:nth-child(1) {
+          width: 60px;
+          text-align: center !important;
         }
       `}</style>
     </>
